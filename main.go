@@ -61,6 +61,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	external, err := externalIP()
 	if err != nil {
 		log.Error(err)
+		return
 	}
 	if len(external) > 0 {
 		log.Infof("External IP address is: %s", external)
@@ -68,6 +69,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		data, err := e.scanMy(external)
 		if err != nil {
 			log.Error(err)
+			return
 		}
 
 		for _, v := range data.Open {
@@ -95,12 +97,14 @@ func (e *Exporter) scanMy(ip string) (*Ports, error) {
 		return data, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return data, err
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 		return data, err
 	}
-
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return data, err
